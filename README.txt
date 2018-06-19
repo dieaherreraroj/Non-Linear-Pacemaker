@@ -3,6 +3,8 @@ PROJECT: CLOCKS AS NON LINEAR PACEMAKERS - NUMERICAL SIMULATIONS
 DATE: June - July of 2018.
 CREATOR: Diego Alejandro Herrera.
 
+TO: Thomas Dittrich (Unal).
+
 DESCRIPTION: The present repository cntains numerical simulations necessary for
 	     the completion of the article "Escapements As Non Linear Pace Ma-
 	     kers.". It contains algorithms, graphics and datafiles related to
