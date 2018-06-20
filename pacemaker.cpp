@@ -4,6 +4,11 @@ const double w = 2.0*M_PI;
 const double q = 0.0;
 const double F = 0.0;
 
+struct DynaSys{
+  EDM_Data system;
+  EDM_force force;
+}
+
 double force(int comp, double t, double *y);
 
 int main(void){
@@ -32,6 +37,8 @@ int main(void){
       printf("%4.7f\t %4.7e\t %4.7e\n",t,theta,pacemaker.ReadCoord(ii,1));
     //}
   }
+
+  
 
 }
 

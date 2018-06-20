@@ -23,7 +23,6 @@ struct EOM_Data{
   double t0;
   double *init_data;
   double *motion;
-  double *dft_decomp;
 
   EOM_Data() {
     dim = 2;
@@ -63,7 +62,6 @@ struct EOM_Data{
  void EOM_Data::kill(){
    free(init_data);
    free(motion);
-   free(dft_decomp);
  }
 
  void EOM_Data::WriteCoord(int i, int j, double x){
