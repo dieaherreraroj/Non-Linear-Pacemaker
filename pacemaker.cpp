@@ -32,16 +32,6 @@ int main(void){
 *******************************************************************************/
   pacemaker.num_solve();
   pacemaker.DynSys.print_motion(t0);
-  /*
-  double t = 0.0;
-  for(int ii = 0; ii < pacemaker.DynSys.NSTEP; ii++){
-    t = pacemaker.DynSys.t0 + ii*pacemaker.DynSys.dt;
-    //if(t > 70.0/q){
-      double ang = pacemaker.DynSys.ReadCoord(ii,0);
-      double theta = atan2(sin(ang),cos(ang));
-      printf("%4.7f\t %4.7e\t %4.7e\n",t,theta,pacemaker.DynSys.ReadCoord(ii,1));
-    //}
-  }
+/******************************************************************************/
   pacemaker.DynSys.kill();
-  */
 }
