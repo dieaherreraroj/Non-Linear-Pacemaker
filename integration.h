@@ -1,6 +1,8 @@
 #include <cstdio>
 #include <cstdlib>
+#include <cmath>
 #include <iostream>
+#include <fftw3.h>
 
 // function pointer used for f(comp,time,vector);
 using fptr = double(int, double, double *);
@@ -23,6 +25,7 @@ struct EOM_Data{
   double t0;
   double *init_data;
   double *motion;
+  double *pdf;
 
   EOM_Data() {
     dim = 2;
@@ -35,6 +38,8 @@ struct EOM_Data{
   void kill();
   void WriteCoord(int i, int j, double x);
   double ReadCoord(int i, int j);
+  void print_motion(double t_begin);
+  void print_spectra(double f_top);
   void rk4_integration(fptr f);
 
 };
@@ -62,6 +67,7 @@ struct EOM_Data{
  void EOM_Data::kill(){
    free(init_data);
    free(motion);
+   free(pdf);
  }
 
  void EOM_Data::WriteCoord(int i, int j, double x){
@@ -77,5 +83,25 @@ struct EOM_Data{
    else{
      std::cerr << "Reading Outside Array" << '\n';
      return 0.0;
+   }
+ }
+
+ void EOM_Data::print_motion(double t_begin){
+   double t = 0.0;
+   for(int ii = 0; ii < NSTEP; ii++){
+     t = t0 + ii*dt;
+     if(t > t_begin){
+       double ang = EOM_Data::ReadCoord(ii,0);
+       double theta = atan2(sin(ang),cos(ang));
+       printf("%4.7f\t %4.7e\t %4.7e\n",t,theta,EOM_Data::ReadCoord(ii,1));
+     }
+   }
+ }
+
+ void EOM_Data::print_spectra(double f_top){
+   double f = 0.0;
+   for(int ii = 0; f < f_top; ii++){
+     f = ((1.0/dt)*ii)/NSTEP;
+     printf("%4.7f\t %4.7e\n",f,dt*dt*pdf[ii]*pdf[ii]);
    }
  }

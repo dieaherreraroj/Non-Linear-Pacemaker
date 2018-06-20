@@ -1,6 +1,4 @@
 #include "integration.h"
-#include <cmath>
-#include <fftw3.h>
 
 /******************************************************************************/
 void copy_vect(int n, double *x, double *y);

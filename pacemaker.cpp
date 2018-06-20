@@ -11,8 +11,6 @@ const double t0 = 0.0;
 const double x0 = 1.0;
 const double v0 = 0.0;
 
-// double force(int comp, double t, double *y);
-
 int main(void){
 
   EOM_Struct pacemaker;
@@ -20,9 +18,9 @@ int main(void){
 /*******************************************************************************
                          SETTING UP FORCE PARAMETERS
 *******************************************************************************/
-  pacemaker.Force.F = F;
-  pacemaker.Force.w = w;
-  pacemaker.Force.q = q;
+  pacemaker.Force.F = 2.5*F;
+  pacemaker.Force.w = 1.0*w;
+  pacemaker.Force.q = 1.5*q;
 /*******************************************************************************
                         SETTING UP INITIAL CONDITIONS
 *******************************************************************************/
@@ -33,6 +31,8 @@ int main(void){
                          SOLVING EOM FOR GIVEN FORCE
 *******************************************************************************/
   pacemaker.num_solve();
+  pacemaker.DynSys.print_motion(t0);
+  /*
   double t = 0.0;
   for(int ii = 0; ii < pacemaker.DynSys.NSTEP; ii++){
     t = pacemaker.DynSys.t0 + ii*pacemaker.DynSys.dt;
@@ -42,30 +42,6 @@ int main(void){
       printf("%4.7f\t %4.7e\t %4.7e\n",t,theta,pacemaker.DynSys.ReadCoord(ii,1));
     //}
   }
-/*******************************************************************************
-  pacemaker.rk4_integration(force);
-  double t = 0.0;
-
-  for(int ii = 0; ii < pacemaker.NSTEP; ii++){
-    t = pacemaker.t0 + ii*pacemaker.dt;
-    //if(t > 70.0/q){
-      double ang = pacemaker.ReadCoord(ii,0);
-      double theta = atan2(sin(ang),cos(ang));
-      printf("%4.7f\t %4.7e\t %4.7e\n",t,theta,pacemaker.ReadCoord(ii,1));
-    //}
-  }
-*******************************************************************************/
-
-
+  pacemaker.DynSys.kill();
+  */
 }
-
-/*
-double force(int comp, double t, double *y){
-  if(comp == 1) return -w*w*y[0]-q*y[1]+F;
-    else if (comp == 0) return y[1];
-  else{
-    std::cerr << "No more dependent variables" << '\n';
-    return 0.0;
-  }
-}
-*/
