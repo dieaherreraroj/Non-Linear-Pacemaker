@@ -30,7 +30,6 @@ struct EOM_Data{
 
   int dim;
   int NSTEP;
-  int SAMPSIZE;
   double dt;
   double t0;
   double *init_data;

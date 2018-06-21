@@ -115,7 +115,6 @@ void EOM_Struct::num_solve(){
     for(int jj = 1; jj < DynSys.dim; jj++)
       DynSys.EOM_Data::WriteCoord(ii,jj,y[jj]);
     // Carry out next integration step
-
     // Update k1
     for(int hh = 0; hh < DynSys.dim; hh++)
       k1[hh] = Force.EOM_Force::force(hh,t,y);
@@ -147,52 +146,36 @@ void EOM_Struct::num_solve(){
 /*******************************************************************************
                       STEADY STATE MOTION FOURIER ANALISYS
 *******************************************************************************/
-
+/*
 void EOM_Struct::dft_spectra(double t_min){
-  int begin = 0;
-  double t = 0.0;
-  // Determine location of t_min
-  for(int ii = 0; ii<DynSys.NSTEP; ii++){
+  fftw_complex *in, *out;
+  fftw_plan plan;
+  // Allocate memory
+  in = (fftw_complex*) fftw_malloc(sizeof(fftw_complex)*DynSys.NSTEP);
+  out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex)*DynSys.NSTEP);
+  plan = fftw_plan_dft_1d(DynSys.NSTEP,in,out,FFTW_FORWARD,FFTW_ESTIMATE);
+  // Fill with stationary state
+  double t = DynSys.t0;
+  for(int ii = 0; ii < DynSys.NSTEP; ii++){
     t = DynSys.t0 + ii*DynSys.dt;
-    if(fabs((double) (t-t_min)) < DynSys.dt){
-      begin = ii;
-      break;
-    }
-    else{
-      begin = -1;
-    }
+    if(t_min <= t)
+      in[ii][0] = DynSys.motion[ii];
+    else
+      in[ii][0] = 0.0;
+    in[ii][1] = 0.0;
   }
-  // Check if size > 0
-  if(0 <= begin){
-    int size = DynSys.NSTEP;
-    DynSys.pdf = (double*) calloc(size,sizeof(double));
-  // Create arrays for transform
-    fftw_complex *in, *out;
-    fftw_plan plan;
-  // Allocate Memory
-    in = (fftw_complex*) fftw_malloc(sizeof(fftw_complex)*size);
-    out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex)*size);
-    plan = fftw_plan_dft_1d(size,in,out,FFTW_FORWARD,FFTW_ESTIMATE);
-  // Copy steady state data
-    for(int ii = 0; ii<size; ii++){
-  // Padding in order to increase resolution
-      if(begin <= ii)
-        in[ii][0] = DynSys.motion[ii];
-      else
-        in[ii][0] = 0.0;
-      in[ii][1] = 0.0;
-    }
-  // Compute dft
-    fftw_execute(plan);
-  // Estimate Power density spectra
-    for(int ii = 0; ii<size; ii++)
-      DynSys.pdf[ii] =
-      DynSys.dt*DynSys.dt*((out[ii][0]*out[ii][0]) + (out[ii][1]*out[ii][1]));
+  // Execute fft algorithm
+  fftw_execute(plan);
+  // Fill with estimated pdf
+  DynSys.pdf = (double*) calloc(DynSys.NSTEP,sizeof(double));
+  double p = 0.0;
+  for(int ii = 0; ii < DynSys.NSTEP; ii++){
+    p = out[ii][0]*out[ii][0] + out[ii][1]*out[ii][1];
+    DynSys.pdf[ii] = DynSys.dt*DynSys.dt*p;
+  }
   // Deallocate Memory
-    fftw_destroy_plan(plan);
-    fftw_free(in);
-    fftw_free(out);
-  }
-  else
-    std::cerr << "Not enough time." << '\n';
+  fftw_destroy_plan(plan);
+  fftw_free(in);
+  fftw_free(out);
 }
+*/
