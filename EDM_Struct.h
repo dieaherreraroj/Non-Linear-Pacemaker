@@ -1,6 +1,18 @@
 #include "integration.h"
 
 /*******************************************************************************
+CREATOR: Diego Alejandro Herrera Rojas.
+FOR: Grupo Caos y Complejidad - National University of Colombia.
+********************************************************************************
+PROJECT: Clock Escapements as Non-linear Pacemakers.
+DESCRIPTION: Implementation of functions used in numerical solution of equations
+             of motion. 
+NOTES: Compile in UNIX system, with a compiler that supports C++11 (at least).
+       Library fftw3 (last version), must be available.
+
+       Compile using g++ -std=c++11 pacemaker.cpp -lfftw3
+*******************************************************************************/
+/*******************************************************************************
 Please do not modify any of the routines below this barrier, otherwise, you may
 have bad results because of bad implementations, only access the routine above,
 or the file integration.h.
@@ -161,7 +173,14 @@ void EOM_Struct::dft_spectra(double t_min){
   double t = 0.0;
   for(int ii = 0; ii < DynSys.NSTEP; ii++){
     t = DynSys.t0 + ii*DynSys.dt;
-    in[ii][0] = sin(4.58*2.0*M_PI*t);
+    /*
+    in[ii][0] = cos(Force.w*t);
+    in[ii][1] = 0.0;*/
+
+    if(t >= t_min)
+      in[ii][0] = DynSys.EOM_Data::ReadCoord(ii,0);
+    else
+      in[ii][0] = 0.0;
     in[ii][1] = 0.0;
   }
   // Compute DFT

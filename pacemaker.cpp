@@ -1,15 +1,28 @@
 #include "EDM_Struct.h"
 
 /*******************************************************************************
+CREATOR: Diego Alejandro Herrera Rojas.
+FOR: Grupo Caos y Complejidad - National University of Colombia.
+********************************************************************************
+PROJECT: Clock Escapements as Non-linear Pacemakers.
+DESCRIPTION: Numerical solution of equations of motion for different dynamical
+             systems, including a Fourier Analysis. Min function, used for par-
+             ticular simlations and data generation.
+NOTES: Compile in UNIX system, with a compiler that supports C++11 (at least).
+       Library fftw3 (last version), must be available.
+
+       Compile using g++ -std=c++11 pacemaker.cpp -lfftw3 
+*******************************************************************************/
+/*******************************************************************************
                     STANDARD PARAMETERS FOR GENERAL MOTION
 *******************************************************************************/
-const double w = 2.0*M_PI;
-const double q = 0.0;
-const double F = 0.0;
+const double w = 1.0;
+const double q = 0.25;
+const double F = 1.0;
 
 const int dim = 2;
-const int STEPS = 1000000;
-const double dt = 0.0001;
+const int STEPS = 1000 * ((int) (100.0/q)) + 1000000;
+const double dt = 0.001;
 const double t0 = 0.0;
 const double x0 = 1.0;
 const double v0 = 0.0;
@@ -17,10 +30,14 @@ const double v0 = 0.0;
                       AUXILIAR FUNCTIONS: DECLARATIONS
 *******************************************************************************/
 double steady_frec(EOM_Struct system, double f_top);
-
+/*******************************************************************************
+                     MAIN FUNCTION: REGION FOR WORKING
+*******************************************************************************/
 int main(void){
 
   EOM_Struct pacemaker;
+  double dF = 0.01;
+  double NTOPS = 350;
 /*******************************************************************************
                         SETTING UP INITIAL CONDITIONS
 *******************************************************************************/
@@ -30,24 +47,20 @@ int main(void){
 /*******************************************************************************
                          SETTING UP FORCE PARAMETERS
 *******************************************************************************/
-  pacemaker.Force.F = 2.5*F;
-  pacemaker.Force.w = 0.15*w;
-  pacemaker.Force.q = 1.5*q;
+  pacemaker.Force.w = w;
+  pacemaker.Force.q = q;
+  for(int ii = 0; ii<= NTOPS; ii++){
+    pacemaker.Force.F = ii*dF;
+/******************************************************************************/
 /*******************************************************************************
                          SOLVING EOM FOR GIVEN FORCE
 *******************************************************************************/
-  pacemaker.num_solve();
-  pacemaker.dft_spectra(0.0);
-  //pacemaker.DynSys.print_motion(0.0);
-
-  double f_top = steady_frec(pacemaker, 5.0);
-  printf("Force: %4.4f\tMain Frec: %4.4f\n",pacemaker.Force.F,f_top);
-  /*
-  std::cout << pacemaker.Force.w/w  << "\t"
-            << pacemaker.Force.q  << "\t"
-            << pacemaker.DynSys.dt  << "\t"
-            << pacemaker.DynSys.NSTEP  << "\n";
-  */
+    pacemaker.num_solve();
+    //pacemaker.DynSys.print_motion(100.0/q);
+    pacemaker.dft_spectra(70.0/q);
+    double f_top = steady_frec(pacemaker, 10.0);
+    printf("%4.7f\t %4.7f\n",pacemaker.Force.F,f_top);
+  }
 /*******************************************************************************
                       RETURN MEMORY (DO NOT DELETE !!!)
 *******************************************************************************/
