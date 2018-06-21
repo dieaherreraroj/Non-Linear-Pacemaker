@@ -148,33 +148,28 @@ void EOM_Struct::num_solve(){
 *******************************************************************************/
 
 void EOM_Struct::dft_spectra(double t_min){
+  // Variables for Fourier Analysis
   fftw_complex *in, *out;
   fftw_plan plan;
   // Allocate memory
+  DynSys.pdf = (double*) calloc(DynSys.NSTEP, sizeof(double));
   in = (fftw_complex*) fftw_malloc(sizeof(fftw_complex)*DynSys.NSTEP);
   out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex)*DynSys.NSTEP);
+  // Create plan
   plan = fftw_plan_dft_1d(DynSys.NSTEP,in,out,FFTW_FORWARD,FFTW_ESTIMATE);
-  // Fill with stationary state
-  double t = DynSys.t0;
+  // Test Filling: Works ok. Problem is in array filling.
+  double t = 0.0;
   for(int ii = 0; ii < DynSys.NSTEP; ii++){
     t = DynSys.t0 + ii*DynSys.dt;
-    if(t_min <= t)
-      in[ii][0] = DynSys.motion[ii];
-    else
-      in[ii][0] = 0.0;
+    in[ii][0] = sin(4.58*2.0*M_PI*t);
     in[ii][1] = 0.0;
   }
-  // Execute fft algorithm
+  // Compute DFT
   fftw_execute(plan);
-  // Fill with estimated pdf
-  DynSys.pdf = (double*) calloc(DynSys.NSTEP,sizeof(double));
   double p = 0.0;
+  // Fill dft array
   for(int ii = 0; ii < DynSys.NSTEP; ii++){
     p = out[ii][0]*out[ii][0] + out[ii][1]*out[ii][1];
     DynSys.pdf[ii] = DynSys.dt*DynSys.dt*p;
   }
-  // Deallocate Memory
-  fftw_destroy_plan(plan);
-  fftw_free(in);
-  fftw_free(out);
 }
