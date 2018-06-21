@@ -31,17 +31,18 @@ int main(void){
                          SETTING UP FORCE PARAMETERS
 *******************************************************************************/
   pacemaker.Force.F = 2.5*F;
-  pacemaker.Force.w = 2.0*M_PI;
+  pacemaker.Force.w = 0.15*w;
   pacemaker.Force.q = 1.5*q;
 /*******************************************************************************
                          SOLVING EOM FOR GIVEN FORCE
 *******************************************************************************/
   pacemaker.num_solve();
-  //pacemaker.dft_spectra(0.0);
-  pacemaker.DynSys.print_motion(0.0);
-  /*
+  pacemaker.dft_spectra(0.0);
+  //pacemaker.DynSys.print_motion(0.0);
+
   double f_top = steady_frec(pacemaker, 5.0);
   printf("Force: %4.4f\tMain Frec: %4.4f\n",pacemaker.Force.F,f_top);
+  /*
   std::cout << pacemaker.Force.w/w  << "\t"
             << pacemaker.Force.q  << "\t"
             << pacemaker.DynSys.dt  << "\t"
@@ -65,5 +66,8 @@ double steady_frec(EOM_Struct system, double f_top){
     if(system.DynSys.pdf[peak] < system.DynSys.pdf[ii])
       peak = ii;
   }
-  return (f_samp*peak)/system.DynSys.NSTEP;
+  if(0 <= peak)
+    return (f_samp*peak)/system.DynSys.NSTEP;
+  else
+    return -1.0;
 }

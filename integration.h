@@ -95,7 +95,7 @@ rameters by editing EOM_Force structure.
 *******************************************************************************/
 
 double EOM_Force::force(int comp, double t, double *y){
-  if(comp == 1) return -w*w*sin(y[0])-q*y[1]+F;
+  if(comp == 1) return -w*w*y[0]-q*y[1]+F;
     else if (comp == 0) return y[1];
   else{
     std::cerr << "No more dependent variables" << '\n';

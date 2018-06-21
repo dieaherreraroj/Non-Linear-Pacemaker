@@ -146,7 +146,7 @@ void EOM_Struct::num_solve(){
 /*******************************************************************************
                       STEADY STATE MOTION FOURIER ANALISYS
 *******************************************************************************/
-/*
+
 void EOM_Struct::dft_spectra(double t_min){
   fftw_complex *in, *out;
   fftw_plan plan;
@@ -178,4 +178,3 @@ void EOM_Struct::dft_spectra(double t_min){
   fftw_free(in);
   fftw_free(out);
 }
-*/
