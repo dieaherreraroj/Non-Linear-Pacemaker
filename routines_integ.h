@@ -1,6 +1,4 @@
 #include "integration.h"
-#include <cmath>
-#include <fftw3.h>
 //#include "omp.h"
 
 /*******************************************************************************

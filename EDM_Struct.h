@@ -1,6 +1,77 @@
 #include "integration.h"
 
-/******************************************************************************/
+/*******************************************************************************
+Please do not modify any of the routines below this barrier, otherwise, you may
+have bad results because of bad implementations, only access the routine above,
+or the file integration.h.
+
+P. S. If it is necessary, check with Diego Alejandro Herrera Rojas (UNAL) via
+      e-mail: dieaherreraroj@unal.edu.co
+*******************************************************************************/
+/******************************************************************************
+                     BASIC EOM DATA STRUCTURE FUNCTIONS
+******************************************************************************/
+
+void EOM_Data::initialize(int n, int N, double delta, double t_init){
+  if(0 < n && 0 < N && 0 < delta){
+    NSTEP = N;
+    dim = n;
+    dt = delta;
+    t0 = t_init;
+    init_data = (double*) calloc(dim,sizeof(double));
+    motion = (double*) calloc(dim*NSTEP,sizeof(double));
+  }
+  else
+    std::cerr << "Inappropriate initialization" << '\n';
+}
+
+void EOM_Data::kill(){
+  free(init_data);
+  free(motion);
+  free(pdf);
+}
+
+void EOM_Data::WriteCoord(int i, int j, double x){
+  if(i < NSTEP && j < dim)
+    motion[dim*i+j] = x;
+  else
+    std::cerr << "Writing Outside Array" << '\n';
+}
+
+double EOM_Data::ReadCoord(int i, int j){
+  if(i < NSTEP && j < dim)
+    return motion[dim*i+j];
+  else{
+    std::cerr << "Reading Outside Array" << '\n';
+    return 0.0;
+  }
+}
+
+void EOM_Data::print_motion(double t_begin){
+  double t = 0.0;
+  for(int ii = 0; ii < NSTEP; ii++){
+    t = t0 + ii*dt;
+    if(t > t_begin){
+      double ang = EOM_Data::ReadCoord(ii,0);
+      double theta = atan2(sin(ang),cos(ang));
+      printf("%4.7f\t %4.7e\t %4.7e\n",t,theta,EOM_Data::ReadCoord(ii,1));
+    }
+  }
+}
+
+void EOM_Data::print_spectra(double f_top){
+  double f = 0.0;
+  // Strange feature. Requires further study
+  double f_samp = 1.0/dt;
+  for(int ii = 0; f < f_top && ii < NSTEP; ii++){
+    f = (f_samp*ii)/NSTEP;
+    printf("%4.7f\t %4.7e\n",f,pdf[ii]);
+  }
+}
+
+/*******************************************************************************
+               AUXILIAR FUNCTIONS (DECLARATION & IMPLEMENTATION)
+*******************************************************************************/
 void copy_vect(int n, double *x, double *y);
 void aux_interm(int n, int tag, double h, double *x, double *y, double *z);
 /******************************************************************************/
@@ -17,38 +88,6 @@ void aux_interm(int n, int tag, double h, double *x, double *y, double *z){
   if(tag == 4)
     for(int ii = 0; ii<n; ii++)
       z[ii] = x[ii] + h*y[ii];
-}
-
-/*******************************************************************************
-                        STRUCTURES FOR EOM SOLVING
-*******************************************************************************/
-
-struct EOM_Force{
-  double F;
-  double w;
-  double q;
-
-  double force(int comp, double t, double *y);
-};
-
-struct EOM_Struct{
-  EOM_Data DynSys;
-  EOM_Force Force;
-
-  void num_solve();
-};
-
-/*******************************************************************************
-                      DEFINITION OF EXTERNAL FORCES
-*******************************************************************************/
-
-double EOM_Force::force(int comp, double t, double *y){
-  if(comp == 1) return -w*w*y[0]-q*y[1]+F;
-    else if (comp == 0) return y[1];
-  else{
-    std::cerr << "No more dependent variables" << '\n';
-    return 0.0;
-  }
 }
 
 /*******************************************************************************
@@ -103,4 +142,57 @@ void EOM_Struct::num_solve(){
   free(k3);
   free(k4);
   free(aux);
+}
+
+/*******************************************************************************
+                      STEADY STATE MOTION FOURIER ANALISYS
+*******************************************************************************/
+
+void EOM_Struct::dft_spectra(double t_min){
+  int begin = 0;
+  double t = 0.0;
+  // Determine location of t_min
+  for(int ii = 0; ii<DynSys.NSTEP; ii++){
+    t = DynSys.t0 + ii*DynSys.dt;
+    if(fabs((double) (t-t_min)) < DynSys.dt){
+      begin = ii;
+      break;
+    }
+    else{
+      begin = -1;
+    }
+  }
+  // Check if size > 0
+  if(0 <= begin){
+    int size = DynSys.NSTEP;
+    DynSys.pdf = (double*) calloc(size,sizeof(double));
+  // Create arrays for transform
+    fftw_complex *in, *out;
+    fftw_plan plan;
+  // Allocate Memory
+    in = (fftw_complex*) fftw_malloc(sizeof(fftw_complex)*size);
+    out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex)*size);
+    plan = fftw_plan_dft_1d(size,in,out,FFTW_FORWARD,FFTW_ESTIMATE);
+  // Copy steady state data
+    for(int ii = 0; ii<size; ii++){
+  // Padding in order to increase resolution
+      if(begin <= ii)
+        in[ii][0] = DynSys.motion[ii];
+      else
+        in[ii][0] = 0.0;
+      in[ii][1] = 0.0;
+    }
+  // Compute dft
+    fftw_execute(plan);
+  // Estimate Power density spectra
+    for(int ii = 0; ii<size; ii++)
+      DynSys.pdf[ii] =
+      DynSys.dt*DynSys.dt*((out[ii][0]*out[ii][0]) + (out[ii][1]*out[ii][1]));
+  // Deallocate Memory
+    fftw_destroy_plan(plan);
+    fftw_free(in);
+    fftw_free(out);
+  }
+  else
+    std::cerr << "Not enough time." << '\n';
 }
