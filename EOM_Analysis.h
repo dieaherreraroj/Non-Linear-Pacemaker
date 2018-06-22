@@ -1,4 +1,4 @@
-#include "integration.h"
+#include "EOM_Struct.h"
 
 /*******************************************************************************
 CREATOR: Diego Alejandro Herrera Rojas.
@@ -6,7 +6,7 @@ FOR: Grupo Caos y Complejidad - National University of Colombia.
 ********************************************************************************
 PROJECT: Clock Escapements as Non-linear Pacemakers.
 DESCRIPTION: Implementation of functions used in numerical solution of equations
-             of motion. 
+             of motion.
 NOTES: Compile in UNIX system, with a compiler that supports C++11 (at least).
        Library fftw3 (last version), must be available.
 
