@@ -1,0 +1,196 @@
+MANUAL TO USE EDO SOLUTION ROUTINES IMPLEMENTED.
+
+REQUIREMENTS: In order to succesfully solve a differential equation of motion
+	      with the routines implemented, the user must have a system with
+	      the following requirements:
+
+	      - GNU compiler gcc 8.1 (last version). Or at least support of
+	      	C++11 ISO standard.
+
+	      - Installed fftw3 v. 3.3.8 from http://www.fftw.org/
+
+	      The user must be sure to include files EOM_Struct.h and EOM_
+	      Analysis.h in the same folder as the .cpp file where the pro-
+	      gramm is writen. This is elementary, but in case the user forget,
+	      absolutely necessary. Finally, reader, should have elementary
+	      knowledge of Object Oriented Programming in C++.
+
+OBJECTIVE: The files EOM_Struct.h and EOM_Analysis.h contain sufficient objects
+	   and routines to solve a general differential equation, with an ar-
+	   bitrary number of parameters, and store results for furter analysis.
+	   As a bonus, it includes posibility of Fourier Analisys.
+
+DIFFERENTIAL EQUATION AS AN OBJECT IN C++:
+
+The routines are written to solve a vector differential equation of first order
+of the form:
+
+				y' = f(y,t)
+
+It is known that all ordinary differential equation can be put in this form,
+even for a set of coupled differential equations. The routines require that
+the user construct properly this vector differential equation.
+
+The differential equation of motion, as an objet,is defined in EOM_Struct and
+includes two separate objects:
+
+1) EOM_Data: This sructure contains the parameters:
+
+   	     	  	   int dim;
+  			   int NSTEP;
+  			   double dt;
+  			   double t0;
+  			   double *init_data;
+  			   double *motion;
+			   double *pdf;
+
+             The integer dim stores the dimension of the system, while NSTEP
+	     contains the amount of integration steps. doubles dt and t0 con-
+	     tain the integration step and the initial time of motion, respec-
+	     tively. The motion data (all degrees of freedom for different ti-
+	     mes) are stored in vector motion, while vector init_data stores
+	     the initial conditions of the motion at t = t0. Vector pdf is
+	     used to store de fourier transform of the motion.
+
+	     Al in all, this structure contains al information of vector y in
+	     the differential equation above.
+
+	     Default constructor is:
+
+	     	     		 EOM_Data() {
+    				    dim = 2;
+    				    NSTEP = 1000;
+    				    dt = 0.01;
+    				    t0 = 0.0;
+				 };
+
+  MEMBER FUNCTIONS:
+
+  void initialize(int n, int N, double delta, double t_init);
+
+  Apart from the default constructor, this is used as a constructor for the user
+  so that he/she can set the numerical integration parameters.
+  
+  void kill();
+
+  Used to return memory after complete use of structure, absolutely important in
+  order to manage heap memory safetely.
+  
+  void WriteCoord(int i, int j, double x);
+
+  Used to return the j_th degree-of-freedom value at i_th step of integration.
+  More used function: print_motion(). The routines do not carry out interpo-
+  lation, the only points where user can obtain a vaue of the solution are
+  those which coincide with the setep of integration.
+  
+  double ReadCoord(int i, int j);
+
+  Used to read the j_th degree-of-freedom value at i_th step of integration.
+  The routines do not carry out interpolation, the only points where user can
+  obtain a vaue of the solution are those which coincide with the setep of
+  integration.
+  
+  void print_motion(double t_begin);
+
+  Used to print the motion as a fuction of time. By default, the routine prints
+  the first and second degrees of freedom, from t_begin till all integration
+  steps are scanned.
+  
+  void print_spectra(double f_top);
+
+  Used to print the Fourier Transform of the motion as a function of the fre-
+  quency, from cero to f_top.
+
+IMPORTANT: Use these last two routines after carring out integration routine.
+	     
+1) EOM_Force: This sructure contains the parameters and definition of f(y,t) in
+   	      the differential equation above, it is really adaptable, so that
+	      the user can define a completely arbitary function, with as many
+	      parameters as desired. Because of the freedom left to user,
+	      he/she should be consistent with the parameters declared and
+	      the actual implementation of force, additionally, he/she, should
+	      implement a default constructor.
+
+   MEMBER FUNCTION:
+
+   double force(int comp, double t, double *y)
+
+   This is the force, f(t,y). Since it is a vector, it receives as an argument
+   the index of the component. That is, it computes the specific force for the
+   degree with index comp.
+
+IMPORTANT: Consistency beteween force implementation and parameter declaration
+	   is fundamental.
+
+IMPORTANT: The onle object the user should modify is EOM_Force. The others are
+	   foridden to the user.
+
+By default, the object members of a EOM_Struct are a EOM_Data and a EOM_Force.
+The first is called DynSys (from Dynamical System) and Force, respectively.
+These names are fixed, and user acces to them by standar commands in c++:
+
+      	    	   equation.DynSys    :    equation.Force
+
+In this manner, user can access object members from the internal structure of
+the differential equation. To acces memeber functions, use, for example:
+
+    		  equation.DynSys.EOM_Data::function_name
+
+Al members of all objects are non static, so that the user can freely modify
+all parameters.
+
+In file EOM_Analysis, the routines are implemented, so the user must include
+this file in the .cpp file. The EOM_Analysis.h is the fundamental file. In
+addition to all the routines mentioned above, there are two routines that
+actually carry out numerical integration and Fourier Analysis.
+
+MEMEBER FUNCTIONS OF EOM_Struct:
+
+void num_solve();
+
+It uses all parameters stored in EOM_Data, and the force implemented in EOM_For
+ce with all its particualr parameters, to solve the differential equation nume-
+rically, by the Runge-Kutta 4 algorithm. I advise user to set the integration
+step to dt = 0.001, to obtain conservation of energy to sixth decimal position.
+
+void dft_spectra(double t_min);
+
+Computes Fourier Transform of the motion from the first degree of freedom, and
+since t_min. The previos data is filled with ceroes (padding). More accurately,
+it computes the Power Density Spectra.
+
+HOW TO SUCCESFULLY SOLVE A DIFFERENTIAL EQUATION:
+
+1) Include the header EOM_Analysis.h in your programm:
+
+   	       	       #include "EOM_Analysis.h"
+
+IMPORTANT: Remember that EOM_Analysis.h and EOM_Struct.h must be in the same
+	   directory as your .cpp file.
+
+2) In main function, declare a Diferential equation:
+
+      	   	          EOM_Struct equation;
+
+3) Set integration parameters:
+
+	       equation.DynSys.initialize(dim,STEPS,dt,t0);
+
+4) Set initial condition:
+
+       	           equation.DynSys.init_data[i] = value
+
+   for every degree of freedom in the system.
+
+5) Execute integration routine:
+
+   	   	        equation.num_integ();
+
+6) If the user wnats to execute a Fourier Analysis:
+
+      	       	     equation.dft_spectra(t_begin);
+
+7) If user wants to print data, i. e. :
+
+      	   	 equation.DynSys.print_motion(t_begin);
+		 equation.DynSys.print_spectra(f_top);
