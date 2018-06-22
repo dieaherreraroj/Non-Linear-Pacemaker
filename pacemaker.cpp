@@ -1,4 +1,4 @@
-#include "EDM_Struct.h"
+#include "EOM_Analysis.h"
 
 /*******************************************************************************
 CREATOR: Diego Alejandro Herrera Rojas.
@@ -11,7 +11,7 @@ DESCRIPTION: Numerical solution of equations of motion for different dynamical
 NOTES: Compile in UNIX system, with a compiler that supports C++11 (at least).
        Library fftw3 (last version), must be available.
 
-       Compile using g++ -std=c++11 pacemaker.cpp -lfftw3 
+       Compile using g++ -std=c++11 pacemaker.cpp -lfftw3
 *******************************************************************************/
 /*******************************************************************************
                     STANDARD PARAMETERS FOR GENERAL MOTION
