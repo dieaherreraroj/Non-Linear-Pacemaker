@@ -1,45 +1,86 @@
-#include "routines_integ.h"
+#include "EOM_Analysis.h"
 
-const double w = 2.0*M_PI;
-const double q = 0.0;
-const double F = 0.0;
+/*******************************************************************************
+CREATOR: Diego Alejandro Herrera Rojas.
+FOR: Grupo Caos y Complejidad - National University of Colombia.
+********************************************************************************
+PROJECT: Clock Escapements as Non-linear Pacemakers.
+DESCRIPTION: Numerical solution of equations of motion for different dynamical
+             systems, including a Fourier Analysis. Min function, used for par-
+             ticular simlations and data generation.
+NOTES: Compile in UNIX system, with a compiler that supports C++11 (at least).
+       Library fftw3 (last version), must be available.
 
-double force(int comp, double t, double *y);
+       Compile using g++ -std=c++11 pacemaker.cpp -lfftw3
+*******************************************************************************/
+/*******************************************************************************
+                    STANDARD PARAMETERS FOR GENERAL MOTION
+*******************************************************************************/
+const double w = 1.0;
+const double q = 0.25;
+const double F = 1.0;
 
+const int dim = 2;
+const int STEPS = 1000 * ((int) (100.0/q)) + 1000000;
+const double dt = 0.001;
+const double t0 = 0.0;
+const double x0 = 1.0;
+const double v0 = 0.0;
+/*******************************************************************************
+                      AUXILIAR FUNCTIONS: DECLARATIONS
+*******************************************************************************/
+double steady_frec(EOM_Struct system, double f_top);
+/*******************************************************************************
+                     MAIN FUNCTION: REGION FOR WORKING
+*******************************************************************************/
 int main(void){
 
-  const int dim = 2;
-  const int STEPS = 10000;
-  const double dt = 0.001;
-  const double t0 = 0.0;
-  const double x0 = 1.0;
-  const double v0 = 0.0;
-
-  EOM_Data pacemaker;
-  pacemaker.initialize(dim,STEPS,dt,t0);
-
-  pacemaker.init_data[0] = x0;
-  pacemaker.init_data[1] = v0;
-
-  pacemaker.rk4_integration(force);
-  double t = 0.0;
-
-  for(int ii = 0; ii < pacemaker.NSTEP; ii++){
-    t = pacemaker.t0 + ii*pacemaker.dt;
-    //if(t > 70.0/q){
-      double ang = pacemaker.ReadCoord(ii,0);
-      double theta = atan2(sin(ang),cos(ang));
-      printf("%4.7f\t %4.7e\t %4.7e\n",t,theta,pacemaker.ReadCoord(ii,1));
-    //}
+  EOM_Struct pacemaker;
+  double dF = 0.01;
+  double NTOPS = 350;
+/*******************************************************************************
+                        SETTING UP INITIAL CONDITIONS
+*******************************************************************************/
+  pacemaker.DynSys.initialize(dim,STEPS,dt,t0);
+  pacemaker.DynSys.init_data[0] = x0;
+  pacemaker.DynSys.init_data[1] = v0;
+/*******************************************************************************
+                         SETTING UP FORCE PARAMETERS
+*******************************************************************************/
+  pacemaker.Force.w = w;
+  pacemaker.Force.q = q;
+  for(int ii = 0; ii<= NTOPS; ii++){
+    pacemaker.Force.F = ii*dF;
+/******************************************************************************/
+/*******************************************************************************
+                         SOLVING EOM FOR GIVEN FORCE
+*******************************************************************************/
+    pacemaker.num_solve();
+    //pacemaker.DynSys.print_motion(100.0/q);
+    pacemaker.dft_spectra(70.0/q);
+    double f_top = steady_frec(pacemaker, 10.0);
+    printf("%4.7f\t %4.7f\n",pacemaker.Force.F,f_top);
   }
-
+/*******************************************************************************
+                      RETURN MEMORY (DO NOT DELETE !!!)
+*******************************************************************************/
+  pacemaker.DynSys.kill();
 }
 
-double force(int comp, double t, double *y){
-  if(comp == 1) return -w*w*y[0]-q*y[1]+F;
-    else if (comp == 0) return y[1];
-  else{
-    std::cerr << "No more dependent variables" << '\n';
-    return 0.0;
+/*******************************************************************************
+                     AUXILIAR FUNCTIONS: IMPLEMENTATIONS
+*******************************************************************************/
+double steady_frec(EOM_Struct system, double f_top){
+  int peak = 0;
+  double f_samp = 1.0/system.DynSys.dt;
+  double f = 0.0;
+  for(int ii = 0; ii < system.DynSys.NSTEP && f <= f_top; ii++){
+    f = (f_samp*ii)/system.DynSys.NSTEP;
+    if(system.DynSys.pdf[peak] < system.DynSys.pdf[ii])
+      peak = ii;
   }
+  if(0 <= peak)
+    return (f_samp*peak)/system.DynSys.NSTEP;
+  else
+    return -1.0;
 }
