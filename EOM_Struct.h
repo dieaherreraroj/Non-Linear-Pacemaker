@@ -1,7 +1,4 @@
-#include <cstdio>
-#include <cstdlib>
-#include <cmath>
-#include <iostream>
+#include "EOM_Data.h"
 #include <fftw3.h>
 
 /*******************************************************************************
@@ -23,37 +20,6 @@ tell you wich are the parameters of each one.
 using fptr = double(int, double, double *);
 
 /*******************************************************************************
-                       BASIC EOM DATA STORING STRUCTURE
-*******************************************************************************/
-
-struct EOM_Data{
-
-  int dim;
-  int NSTEP;
-  double dt;
-  double t0;
-  double *init_data;
-  double *motion;
-  double *pdf;
-
-  EOM_Data() {
-    dim = 2;
-    NSTEP = 1000;
-    dt = 0.01;
-    t0 = 0.0;
-  };
-
-  void initialize(int n, int N, double delta, double t_init);
-  void kill();
-  void WriteCoord(int i, int j, double x);
-  double ReadCoord(int i, int j);
-  void print_motion(double t_begin);
-  void print_spectra(double f_top);
-  void rk4_integration(fptr f);
-
-};
-
-/*******************************************************************************
                         STRUCTURES FOR EOM SOLVING
 ********************************************************************************
 This is the only part you should modify, in here you can define all parameters
@@ -64,13 +30,21 @@ remember to modify memeber function force() accordingly.
 
 struct EOM_Force{
   double F;
+  double gamma1;
+  double gamma2;
+  double r;
   double w;
   double q;
+  double d;
 
   EOM_Force() {
+    r = 1.0;
     F = 0.0;
     w = 2.0*M_PI;
     q = 0.0;
+    gamma1 = -0.4*M_PI/180.0;
+    gamma2 = 1.0*M_PI/180.0;
+    d = 80.0*M_PI/180.0;
   };
 
   double force(int comp, double t, double *y);
@@ -95,8 +69,15 @@ rameters by editing EOM_Force structure.
 *******************************************************************************/
 
 double EOM_Force::force(int comp, double t, double *y){
-  if(comp == 1) return -w*w*sin(y[0])-q*y[1]+F;
-    else if (comp == 0) return y[1];
+  if(comp == 0) return y[1];
+    else if (comp == 1){
+      double force =  -w*w*sin(y[0])-q*y[1];
+      if(((gamma1 < y[0] < gamma2) &&  (0.0 < y[1])) || ((-gamma2 < y[0] < gamma1) &&  (0.0 > y[1])))
+        return force + F*r*tan(d);
+      else
+        return force;
+
+    }
   else{
     std::cerr << "No more dependent variables" << '\n';
     return 0.0;
