@@ -37,7 +37,7 @@ int main(void){
 
   EOM_Struct pacemaker;
   double dF = 0.01;
-  double NTOPS = 350;
+  double NTOPS = 50;
 /*******************************************************************************
                         SETTING UP INITIAL CONDITIONS
 *******************************************************************************/
@@ -47,20 +47,20 @@ int main(void){
 /*******************************************************************************
                          SETTING UP FORCE PARAMETERS
 *******************************************************************************/
-  pacemaker.Force.w = w;
-  pacemaker.Force.q = q;
-  for(int ii = 0; ii<= NTOPS; ii++){
-    pacemaker.Force.F = ii*dF;
+  pacemaker.Force.F = 0.5;
+  pacemaker.Force.q = 0.1;
+  //for(int ii = 0; ii<= NTOPS; ii++){
+    //pacemaker.Force.F = ii*dF;
 /******************************************************************************/
 /*******************************************************************************
                          SOLVING EOM FOR GIVEN FORCE
 *******************************************************************************/
     pacemaker.num_solve();
-    //pacemaker.DynSys.print_motion(100.0/q);
-    pacemaker.dft_spectra(70.0/q);
+    pacemaker.DynSys.print_motion(100.0/q);
+    /*pacemaker.dft_spectra(70.0/q);
     double f_top = steady_frec(pacemaker, 10.0);
     printf("%4.7f\t %4.7f\n",pacemaker.Force.F,f_top);
-  }
+  }*/
 /*******************************************************************************
                       RETURN MEMORY (DO NOT DELETE !!!)
 *******************************************************************************/
