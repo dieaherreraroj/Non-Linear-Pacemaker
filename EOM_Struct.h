@@ -29,22 +29,22 @@ remember to modify memeber function force() accordingly.
 *******************************************************************************/
 
 struct EOM_Force{
-  double F;
-  double gamma1;
-  double gamma2;
-  double r;
+  double a;
+  double It;
+  double Ip;
+  double gamma;
+  double alfa;
+  double Itot;
   double w;
-  double q;
-  double d;
 
   EOM_Force() {
-    r = 1.0;
-    F = 0.0;
+    a = 1.0;
+    It = 1.0;
+    Ip = 0.1;
+    gamma = 0.2;
+    alfa = tan(14.0*M_PI/180.0);
+    Itot = It + Ip/(alfa*alfa);
     w = 2.0*M_PI;
-    q = 0.0;
-    gamma1 = -0.4*M_PI/180.0;
-    gamma2 = 1.0*M_PI/180.0;
-    d = 80.0*M_PI/180.0;
   };
 
   double force(int comp, double t, double *y);
@@ -70,14 +70,7 @@ rameters by editing EOM_Force structure.
 
 double EOM_Force::force(int comp, double t, double *y){
   if(comp == 0) return y[1];
-    else if (comp == 1){
-      double force =  -w*w*sin(y[0])-q*y[1];
-      if(((gamma1 < y[0] < gamma2) &&  (0.0 < y[1])) || ((-gamma2 < y[0] < gamma1) &&  (0.0 > y[1])))
-        return force + F*r*tan(d);
-      else
-        return force;
-
-    }
+    else if (comp == 1) return -(gamma/Itot)*y[1]-(It/Itot)*w*w*y[0]+a/alfa;
   else{
     std::cerr << "No more dependent variables" << '\n';
     return 0.0;

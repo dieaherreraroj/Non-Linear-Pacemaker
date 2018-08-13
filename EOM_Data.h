@@ -3,6 +3,13 @@
 #include <cmath>
 #include <iostream>
 /*******************************************************************************
+- AUTHOR: Diego Alejandro Herrera Rojas
+- DATE: 07/08/18
+- DESCRIPTION: Structure numerical integration, for project of
+               Chaos Group (National University of Colombia). Remember to
+               include this file with your routine-implementation files.
+*******************************************************************************/
+/*******************************************************************************
                        BASIC EOM DATA STORING STRUCTURE
 *******************************************************************************/
 struct EOM_Data{
@@ -17,8 +24,8 @@ struct EOM_Data{
 
   EOM_Data() {
     dim = 2;
-    NSTEP = 1000;
-    dt = 0.01;
+    NSTEP = 10000;
+    dt = 0.001;
     t0 = 0.0;
   };
 
@@ -77,7 +84,7 @@ void EOM_Data::print_motion(double t_begin){
       double theta = atan2(sin(ang),cos(ang));
       printf("%4.7f\t %4.7e\t ",t,theta);
       for(int jj = 1; jj < dim; jj++)
-        printf("%4.7f\t ",EOM_Data::ReadCoord(ii,jj));
+        printf("%4.7e\t ",EOM_Data::ReadCoord(ii,jj));
       printf("\n");
     }
   }
