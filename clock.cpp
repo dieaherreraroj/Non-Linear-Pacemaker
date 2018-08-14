@@ -1,49 +1,32 @@
-#include "Clock_Analysis.h"
-
-/*******************************************************************************
-                       BASIC DYNAMICAL AND DESIGN CONSTANTS
-*******************************************************************************/
-const double q = 0.25;
-const double w = 2.0*M_PI;
-const double alpha = 1.39;
-const double phi = 0.25;
-const double I = 1.0;
-const double tau = 20.0;
-const double r = 1.0;
-/*******************************************************************************
-                         NUMERICAL INTEGRATION CONSTANTS
-*******************************************************************************/
-const int dim = 4;
-const double t0 = 0.0;
-const double tf = 100.0/q;
-const double dt = 0.001;
+#include "Punchet.h"
 
 int main(void){
-  Clock grandpa;
-  int NSTEP = (int) ((tf-t0)/dt);
-/*******************************************************************************
-                      SET CLOCK DESIGN & MECHANICAL PARAMS.
-*******************************************************************************/
-  grandpa.init_design_param(phi,r,alpha,15,q);
-  grandpa.init_pend_mec_param(w,I,0.1*q);
-  grandpa.init_wheel_mec_param(tau,0.25*I,0.1*q);
-/*******************************************************************************
-                           SET INTEGRATION PARAMETERS
-*******************************************************************************/
-  grandpa.integ_data.initialize(dim,NSTEP,dt,t0);
-/*******************************************************************************
-                           SET INITIAL CONDITIONS
-*******************************************************************************/
-  for(int ii = 0; ii < grandpa.integ_data.dim; ii++)
-    grandpa.integ_data.init_data[ii] = 0.0;
-/*******************************************************************************
-                           SOLVE EQUATIONS OF MOTION
-*******************************************************************************/
-  grandpa.motion_integration();
-  grandpa.integ_data.print_motion(t0);
-/*******************************************************************************
-                                 RETURN MEMORY
-*******************************************************************************/
-  free(grandpa.integ_data.init_data);
-  free(grandpa.integ_data.motion);
+  // Declaration of variables
+  Punchet grandpa; std::vector<double> data;
+  // Request memory
+  grandpa.init_punchet();
+  // Set intitial conditions for motion;
+  grandpa.now_init_cond[0] = 0.0;
+  grandpa.now_init_cond[1] = 0.02;
+  grandpa.now_init_cond[2] = 0.0;
+  grandpa.now_init_cond[3] = 0.0;
+  grandpa.now_init_cond[4] = 0.0;
+  // Perform algorithm
+  int i = 1;
+  grandpa.check_now_phase();
+  while(grandpa.now_init_cond[4] <= 60.0 && i < 60){
+    grandpa.init_next_phase(60.0);
+    int now_tag = grandpa.now_phase;
+    int next_tag = grandpa.next_phase;
+    double t_end = grandpa.next_init_cond[4];
+    double t_begin = grandpa.now_init_cond[4];
+    printf("%1d\t %1d\t %4.7e\t %4.7e\n",now_tag,next_tag,t_begin,t_end);
+    i++;
+    for(int ii = 0; ii < 5; ii++){
+      grandpa.now_init_cond[ii] = grandpa.next_init_cond[ii];
+      grandpa.now_phase = grandpa.next_phase;
+    }
+  }
+  // Return memory
+  grandpa.kill_punchet();
 }
