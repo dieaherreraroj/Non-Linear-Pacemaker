@@ -2,6 +2,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstdio>
+#include <vector>
 
 struct Punchet{
 /*******************************************************************************
@@ -60,9 +61,10 @@ struct Punchet{
   void kill_punchet();
   void check_now_phase();
   double change_phase(double t, int tag1, int tag2);
-  double time_change_phase(int tag1, int tag2);
+  double time_change_phase(int tag1, int tag2, double t_top);
   void init_next_phase(double t_top);      // Here is the real magic
-  void print_motion(double t_top);
+  void print_phase(std::vector<double> & data);
+  void num_solve(double t_top, std::vector<double> & data);
 };
 /*******************************************************************************
            FUNCTIONS FOR DIFFERENT DEGREES OF FREEDOM: IMPLEMENTATIONS
@@ -250,7 +252,7 @@ double Punchet::change_phase(double t, int tag1, int tag2){
   }
 }
 /******************************************************************************/
-double Punchet::time_change_phase(int tag1, int tag2){
+double Punchet::time_change_phase(int tag1, int tag2, double t_top){
   double ti = now_init_cond[4], tf, tr;
   double fi = change_phase(ti,tag1,tag2), ff = fi, fr;
   // Loof for next seed for Regula Falsi
@@ -292,7 +294,7 @@ double Punchet::time_change_phase(int tag1, int tag2){
   fr = change_phase(tr,tag1,tag2);
   if(ii == 1000 && fabs(fr) > 1e-14){
     std::cerr << "Need more steps or there is no root " << '\n';
-    return tr;
+    return t_top;
   }
   else
     return tr;
@@ -301,7 +303,7 @@ double Punchet::time_change_phase(int tag1, int tag2){
 void Punchet::init_next_phase(double t_top){
   if((now_phase == 1) || (now_phase == 2)){
     // Looking for uncoupled motion
-    double tr = time_change_phase(now_phase,3);
+    double tr = time_change_phase(now_phase,3,t_top);
     // Idenify actual end of fase (including ending of motion record)
     double t = fmin(tr,t_top);
     // Store next initial conditions of clock motion
@@ -317,8 +319,8 @@ void Punchet::init_next_phase(double t_top){
       next_phase = now_phase;
   }
   else if(now_phase == 3){
-    double t1r = time_change_phase(now_phase,1);
-    double t2r = time_change_phase(now_phase,2);
+    double t1r = time_change_phase(now_phase,1,t_top);
+    double t2r = time_change_phase(now_phase,2,t_top);
     double tp = fmin(t1r,t2r);
     double t = fmin(tp,t_top);
     // Store next initial conditions of clock motion
@@ -345,18 +347,20 @@ void Punchet::init_next_phase(double t_top){
   }
 }
 /******************************************************************************/
-void Punchet::print_motion(double t_top){
-  if((0<now_tag) && (now_tag<4)){
-    if((0<next_tag) && (next_tag<4)){
-      double t = now_init_cond[5];
+void Punchet::print_phase(std::vector<double> & data){
+  if((0<now_phase) && (now_phase<4)){
+    if((0<next_phase) && (next_phase<4)){
+      double t = now_init_cond[4];
       double dt = 1e-4;
-      for(int ii = 0; t <= next_init_cond[5]; i++){
-        t = now_init_cond[5] + ii*dt;
+      for(int ii = 0; t <= next_init_cond[4]; ii++){
+        t = now_init_cond[4] + ii*dt;
         double y = theta(t,now_phase);
+        data.push_back(y);
         double vy = theta_dot(t,now_phase);
         double x = phi(t,now_phase);
         double vx = phi_dot(t,now_phase);
-        printf("%4.7e\t %4.7e\t %4.7e\t %4.7e\t %4.7e\n",t,y,vy,x,vx);
+        y *= 1.0/theta_max;
+        printf("%1d\t %4.7e\t %4.7e\t %4.7e\t %4.7e\t %4.7e\n",now_phase,t,y,vy,fmod(x,2.0*M_PI),vx);
       }
     }
     else{
@@ -365,5 +369,20 @@ void Punchet::print_motion(double t_top){
   }
   else{
     std::cerr << "Not updated now initial conditions" << '\n';
+  }
+}
+/******************************************************************************/
+void Punchet::num_solve(double t_top, std::vector<double> & data){
+  // Compute phase transtions in some interval [0.0:t_top]
+  while(now_init_cond[4] <= t_top){
+    // Check which is the current phase of motion
+    check_now_phase();
+    // Set up next phase of motion
+    init_next_phase(t_top);
+    // Print data and record it (timestep == 1e-4)
+    print_phase(data);
+    // Update initial conditions: next -> now
+    for(int ii = 0; ii < 5; ii++)
+      now_init_cond[ii] = next_init_cond[ii];
   }
 }
