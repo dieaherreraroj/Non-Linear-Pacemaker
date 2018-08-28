@@ -22,15 +22,16 @@ struct Punchet{
   double gammat;                           // Friction Coefficient of Pendulum
   double gammap;                           // Friction Coefficient of esc. wheel
   double omega;                            // Natural Frequency of Pendulum
+  int num_cycle;                        // Number of tooth in current cycle
 /*******************************************************************************
                              DEFAULT INTIALIZER
 *******************************************************************************/
   Punchet(){
 /******************************************************************************/
-    alfa = tan(10.0*M_PI/180.0);
-    num_teeth = 30.0;
+    alfa = tan(5.0*M_PI/180.0);
+    num_teeth = 40.0;
     gamma = 0.2;
-    theta_max = 0.5*(0.5*M_PI/num_teeth);
+    theta_max = 0.01*(2.0*M_PI/num_teeth)/alfa;   // < PHI/(4.0*alfa)
     omega = 2.0*M_PI;
 /******************************************************************************/
     It = 1.0;
@@ -38,7 +39,8 @@ struct Punchet{
     Itot = It + Ip/(alfa*alfa);
     gammat = 0.85*gamma;
     gammap = 0.01*gammat;
-    torque = 1.10*omega*omega*theta_max*It/alfa;
+    torque = 1.10*omega*omega*theta_max*It*alfa;
+    num_cycle = 0;
   }
 /*******************************************************************************
                  INITIAL-FINAL CONDITIONS FOR UPCOMING MOTION
@@ -60,11 +62,14 @@ struct Punchet{
   void init_punchet();
   void kill_punchet();
   void check_now_phase();
+  void check_num_cycle();
   double change_phase(double t, int tag1, int tag2);
   double time_change_phase(int tag1, int tag2, double t_top);
   void init_next_phase(double t_top);      // Here is the real magic
   void print_phase(std::vector<double> & data);
+  void update_init_cond();
   void num_solve(double t_top, std::vector<double> & data);
+  void print_table(double t_top);
 };
 /*******************************************************************************
            FUNCTIONS FOR DIFFERENT DEGREES OF FREEDOM: IMPLEMENTATIONS
@@ -93,7 +98,7 @@ double Punchet::theta(double t, int tag){
     double b = gamma/Itot;
     double k = It/Itot;
     double d0 = now_init_cond[0] + pow(-1.0,tag)*torque/(k*omega*omega*alfa);
-    double w2 = (k*omega)*(k*omega)-(b/2.0)*(b/2.0);
+    double w2 = k*omega*omega-(b/2.0)*(b/2.0);
     double w = sqrt(fabs(w2));
     double B = d0;
     double A = (now_init_cond[1]+0.5*b*B)/sqrt(fabs(w2));
@@ -173,11 +178,11 @@ double Punchet::phi(double t, int tag){
   }
   else if(tag == 1){
     double PHI = 2.0*M_PI/num_teeth;
-    return Punchet::theta(t,tag)*alfa+PHI*floor(now_init_cond[2]/PHI);
+    return Punchet::theta(t,tag)*alfa+PHI*num_cycle;
   }
   else if(tag == 2){
     double PHI = 2.0*M_PI/num_teeth;
-    return -Punchet::theta(t,tag)*alfa+PHI*floor(now_init_cond[2]/PHI)+0.5*PHI;
+    return -Punchet::theta(t,tag)*alfa+PHI*num_cycle+0.5*PHI;
   }
   else{
     std::cerr << "There is not another phase of motion" << '\n';
@@ -221,17 +226,38 @@ void Punchet::kill_punchet(){
 /******************************************************************************/
 void Punchet::check_now_phase(){
   double PHI = 2.0*M_PI/num_teeth;
-  double tic = 0.0, tac = 0.0;
-  tic = now_init_cond[0]*alfa-now_init_cond[2]+PHI*floor(now_init_cond[2]/PHI);
-  tac = now_init_cond[0]*alfa+now_init_cond[2]+PHI*(floor(now_init_cond[2]/PHI)+0.5);
-  if(fabs(now_init_cond[0]) <= theta_max){
-    if(fabs(tic) < 1e-10) now_phase = 1;
-      else if(fabs(tac) < 1e-10) now_phase = 2;
+  double dtic = 0.0, tic = 0.0, dtac = 0.0, tac = 0.0;
+  dtic = (now_init_cond[2]-now_init_cond[0]*alfa)/PHI;
+  tic = dtic - floor(dtic);
+  dtac = (now_init_cond[2]+now_init_cond[0]*alfa)/PHI-0.5;
+  tac = dtac - floor(dtac);
+  if(fabs(tic) < 1e-10){
+    if(now_init_cond[0] <= theta_max)
+      now_phase = 1;
     else
       now_phase = 3;
   }
-  else
-    now_phase = 3;
+  else{
+    if(fabs(tac) < 1e-10){
+      if(-theta_max <= now_init_cond[0])
+        now_phase = 2;
+      else
+        now_phase = 3;
+    }
+    else
+      now_phase = 3;
+  }
+}
+/******************************************************************************/
+void Punchet::check_num_cycle(){
+  double PHI = 2.0*M_PI/num_teeth;
+  if(PHI*(0.5+num_cycle) <= next_init_cond[2]){
+    //printf("next tooth   ");
+    num_cycle++;
+  }
+  else{
+    //printf("stay tooth   ");
+  }
 }
 /******************************************************************************/
 double Punchet::change_phase(double t, int tag1, int tag2){
@@ -239,15 +265,13 @@ double Punchet::change_phase(double t, int tag1, int tag2){
   if((tag1 == 1) && (tag2 == 3)) return theta(t,tag1)-theta_max;
     else if((tag1 == 2) && (tag2 == 3)) return theta(t,tag1)+theta_max;
       else if((tag1 == 3) && (tag2 == 1)){
-        double pi = phi(t,tag1);
-        return theta(t,tag1)*alfa-pi+PHI*floor(pi/PHI);
+        return theta(t,tag1)*alfa-phi(t,tag1)+num_cycle*PHI;
       }
       else if((tag1 == 3) && (tag2 == 2)){
-        double pi = phi(t,tag1);
-        return theta(t,tag1)*alfa+pi-PHI*(floor(pi/PHI)+0.5);
+        return theta(t,tag1)*alfa+phi(t,tag1)-(num_cycle+0.5)*PHI;
       }
   else{
-    std::cerr << "Trying to keep same phase or unidentified phase" << '\n';
+    //std::cerr << "Trying to keep same phase or unidentified phase" << '\n';
     return 0.0;
   }
 }
@@ -292,11 +316,18 @@ double Punchet::time_change_phase(int tag1, int tag2, double t_top){
   }
   // Check whether tr is an actual root
   fr = change_phase(tr,tag1,tag2);
-  if(ii == 1000 && fabs(fr) > 1e-14){
-    std::cerr << "Need more steps or there is no root " << '\n';
-    return t_top;
+  if(ii == 10000){
+    if(fabs(fr) > 1e-14){
+      std::cerr << "Need more steps or there is no root " << '\n';
+      return t_top;
+    }
+    else{
+      std::cerr << "Finished iterations " << '\n';
+      return tr;
+    }
   }
   else
+    //std::cout << "Hello Diego!!!" << tr <<'\n';
     return tr;
 }
 /******************************************************************************/
@@ -321,7 +352,15 @@ void Punchet::init_next_phase(double t_top){
   else if(now_phase == 3){
     double t1r = time_change_phase(now_phase,1,t_top);
     double t2r = time_change_phase(now_phase,2,t_top);
-    double tp = fmin(t1r,t2r);
+    double tp = 0.0;
+    if((theta(t1r,now_phase) <= theta_max) && (-theta_max  <= theta(t2r,now_phase)))
+      tp = fmin(t1r,t2r);
+    else{
+      if(theta(t1r,now_phase) <= theta_max) tp = t1r;
+        else if(-theta_max  <= theta(t2r,now_phase)) tp = t2r;
+      else
+        tp = t_top;
+    }
     double t = fmin(tp,t_top);
     // Store next initial conditions of clock motion
     next_init_cond[4] = t;
@@ -332,10 +371,10 @@ void Punchet::init_next_phase(double t_top){
     // And determine next phase
     if(t == tp){
       next_init_cond[3] = alfa*next_init_cond[1];
-      if(tp == t1r)
-        next_phase = 1;
+      if(tp == t1r) next_phase = 1;
+        else if(tp == t2r) next_phase = 2;
       else
-        next_phase = 2;
+        next_phase = now_phase;
     }
     else{
       next_init_cond[3] = phi_dot(t,now_phase);
@@ -348,6 +387,7 @@ void Punchet::init_next_phase(double t_top){
 }
 /******************************************************************************/
 void Punchet::print_phase(std::vector<double> & data){
+  double PHI = 2.0*M_PI/30.0;
   if((0<now_phase) && (now_phase<4)){
     if((0<next_phase) && (next_phase<4)){
       double t = now_init_cond[4];
@@ -359,8 +399,9 @@ void Punchet::print_phase(std::vector<double> & data){
         double vy = theta_dot(t,now_phase);
         double x = phi(t,now_phase);
         double vx = phi_dot(t,now_phase);
-        y *= 1.0/theta_max;
-        printf("%1d\t %4.7e\t %4.7e\t %4.7e\t %4.7e\t %4.7e\n",now_phase,t,y,vy,fmod(x,2.0*M_PI),vx);
+        y *= 180.0/M_PI;
+        x *= 1.0/PHI;
+        printf("%1d\t %4.7e\t %4.7e\t %4.7e\t %4.7e\t %4.7e\n",now_phase,t,y,vy,x,vx);
       }
     }
     else{
@@ -372,17 +413,47 @@ void Punchet::print_phase(std::vector<double> & data){
   }
 }
 /******************************************************************************/
+void Punchet::update_init_cond(){
+  for(int ii = 0; ii<5; ii++)
+    now_init_cond[ii] = next_init_cond[ii];
+  now_phase = next_phase;
+}
+/******************************************************************************/
 void Punchet::num_solve(double t_top, std::vector<double> & data){
+  // Check initial phase of motion
+  check_now_phase();
+  check_num_cycle();
   // Compute phase transtions in some interval [0.0:t_top]
-  while(now_init_cond[4] <= t_top){
-    // Check which is the current phase of motion
-    check_now_phase();
+  while(next_init_cond[4] < t_top){
     // Set up next phase of motion
-    init_next_phase(t_top);
+    init_next_phase(t_top+1.0);
     // Print data and record it (timestep == 1e-4)
+    if(now_phase == 1)
     print_phase(data);
     // Update initial conditions: next -> now
-    for(int ii = 0; ii < 5; ii++)
-      now_init_cond[ii] = next_init_cond[ii];
+    update_init_cond();
+    // Update phase of motion
+    check_num_cycle();
+  }
+}
+/******************************************************************************/
+void Punchet::print_table(double t_top){
+  double PHI = 2.0*M_PI/num_teeth;
+  check_now_phase();
+  check_num_cycle();
+  printf("NP\tNxP\t#T\t      tr\t   vi\t   vf\t\tCF\n");
+  while(next_init_cond[4] < t_top){
+    // Set up next phase of motion
+    init_next_phase(t_top+1.0);
+    printf("%1d\t ",now_phase);
+    printf("%1d\t ",next_phase);
+    printf("%1d\t ",num_cycle);
+    double tr = next_init_cond[4];
+    double phi_init = now_init_cond[2];
+    double phi_next = next_init_cond[2];
+    printf("%4.7e\t %4.3f\t %4.3f\t ",tr,phi_init/PHI,phi_next/PHI);
+    printf("(%4.7e)\n",change_phase(tr,now_phase,next_phase));
+    update_init_cond();
+    check_num_cycle();
   }
 }
